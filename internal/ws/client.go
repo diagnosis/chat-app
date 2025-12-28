@@ -11,7 +11,7 @@ import (
 const (
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10 // Send pings at 90% of pong wait
+	pingPeriod     = (pongWait * 9) / 10
 	maxMessageSize = 512
 )
 
@@ -25,7 +25,7 @@ type Client struct {
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c
-		c.Conn.Close()
+		c.Conn.Close() // Only place we close the connection
 	}()
 
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -40,7 +40,7 @@ func (c *Client) ReadPump() {
 			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
 				logger.Info("client disconnected normally", "username", c.Username)
 			} else {
-				logger.Error("readpump error", "err", err)
+				logger.Debug("read error", "err", err, "username", c.Username)
 			}
 			break
 		}
@@ -62,24 +62,20 @@ func (c *Client) ReadPump() {
 
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.Conn.Close()
-	}()
+	defer ticker.Stop()
 
 	for {
 		select {
 		case message, ok := <-c.Send:
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// Hub closed the channel
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
 			err := c.Conn.WriteMessage(websocket.TextMessage, message)
 			if err != nil {
-				logger.Error("write pump error", "err", err)
+				logger.Debug("write error", "err", err, "username", c.Username)
 				return
 			}
 
