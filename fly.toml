@@ -1,28 +1,31 @@
-# fly.toml app configuration file generated for chat-app-sd on 2025-12-28T06:28:56Z
-#
-# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
-
 app = 'chat-app-sd'
 primary_region = 'sjc'
 
 [build]
   [build.args]
-    GO_VERSION = '1.24.4'
+    GO_VERSION = '1.24'
 
 [env]
   PORT = '8080'
 
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
-  auto_stop_machines = 'stop'
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ['app']
+  protocol = "tcp"  # ← Changed from http_service to TCP!
+  
+  [[services.ports]]
+    port = 80
+    handlers = []  # No HTTP handlers
+    
+  [[services.ports]]
+    port = 443
+    handlers = ["tls"]  # Only TLS, no HTTP layer
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 1000
 
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 1024
