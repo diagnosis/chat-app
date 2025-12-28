@@ -1,17 +1,12 @@
-# fly.toml app configuration file generated for chat-app-sd on 2025-12-28T06:28:56Z
+# fly.toml app configuration file generated for chat-app-sd on 2025-12-28T06:46:58Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
 app = 'chat-app-sd'
-primary_region = 'sjc'
+primary_region = 'iad'
 
 [build]
-  [build.args]
-    GO_VERSION = '1.24.4'
-
-[env]
-  PORT = '8080'
 
 [http_service]
   internal_port = 8080
