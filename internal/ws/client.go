@@ -10,8 +10,8 @@ import (
 
 const (
 	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
+	pongWait       = 5 * time.Minute // 5 minutes (Fly.io friendly)
+	pingPeriod     = 4 * time.Minute // Ping every 4 minutes
 	maxMessageSize = 512
 )
 
@@ -30,6 +30,7 @@ func (c *Client) ReadPump() {
 
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.Conn.SetPongHandler(func(string) error {
+		logger.Debug("received pong", "username", c.Username)
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
