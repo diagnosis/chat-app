@@ -2,7 +2,7 @@ import Router from "../services/Router.js";
 
 export function renderHome() {
 	return `
-      <div class="home-container flex min-h-screen items-center justify-center bg-gray-100">
+      <div class="home-container flex min-h-screen items-center justify-center bg-gray-100 p-4">
 
   <div class="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
 
