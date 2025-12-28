@@ -6,11 +6,19 @@ import Router from "../services/Router.js";
 export function setupChat(){
 	const params = new URLSearchParams(location.search)
 	const username = params.get("username")
-	console.log(username)
+
 	if(!username){
 		Router.go("/")
 	}
-	const ws = new WebSocket(`ws://localhost:8080/ws?username=${username}`)
+
+	// Dynamic WebSocket URL based on current host
+	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+	const host = window.location.host  // e.g., "chat-app-sd.fly.dev" or "localhost:8080"
+	const wsUrl = `${protocol}//${host}/ws?username=${username}`
+
+	console.log("Connecting to:", wsUrl)  // Debug
+
+	const ws = new WebSocket(wsUrl)
 	ws.onopen = ()=>{
 		console.log("connected!")
 	}
