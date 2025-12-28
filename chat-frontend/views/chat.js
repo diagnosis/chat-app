@@ -1,26 +1,20 @@
 import Router from "../services/Router.js";
 
+let ws
+let reconnectTimer
+let username
+
 export function setupChat(){
 	const params = new URLSearchParams(location.search)
-	const username = params.get("username")
+	username = params.get("username")
 
 	if(!username){
 		Router.go("/")
+		return
 	}
 
-	// Dynamic WebSocket URL based on current host
-	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-	const host = window.location.host
-	const wsUrl = `${protocol}//${host}/ws?username=${username}`
-
-	console.log("Connecting to:", wsUrl)
-
-	const ws = new WebSocket(wsUrl)
-
-	ws.onopen = ()=>{
-		console.log("✅ WebSocket CONNECTED")
-		console.log("WebSocket state:", ws.readyState)
-	}
+	// Start connection
+	connect()
 
 	// Toggle users sidebar on mobile
 	const toggleBtns = document.querySelectorAll('.toggle-users')
@@ -32,44 +26,83 @@ export function setupChat(){
 		})
 	})
 
-	ws.onmessage = (e)=>{
-		console.log("📨 Message received:", e.data)
-		const data = JSON.parse(e.data)
-		if (data.message_type === 0 || data.message_type === 1){
-			console.log(data)
-			displaySystemMessage(data)
-			updateUserList(data.online_users, username)
-		}else if(data.message_type === 2){
-			console.log("new message:", data)
-			displayChatMessage(data, username)
-		}
-	}
-
-	function sendMessage(){
-		const input = document.querySelector(".message-input")
-		const content = input.value.trim()
-		if(!content){
-			return
-		}
-		ws.send(JSON.stringify({action: "chat", content:content}))
-		input.value = ""
-	}
-
+	// Send message handlers (set up once)
 	document.querySelector(".send-btn").addEventListener("click", sendMessage)
 	document.querySelector(".message-input").addEventListener("keypress", (e)=>{
 		if(e.key === "Enter"){
 			sendMessage()
 		}
 	})
+}
+
+function connect() {
+	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+	const host = window.location.host
+	const wsUrl = `${protocol}//${host}/ws?username=${username}`
+
+	console.log("Connecting to:", wsUrl)
+
+	ws = new WebSocket(wsUrl)
+
+	ws.onopen = ()=>{
+		console.log("✅ WebSocket CONNECTED")
+		showStatus("Connected", "green")
+	}
+
+	ws.onmessage = (e)=>{
+		console.log("📨 Message received:", e.data)
+		const data = JSON.parse(e.data)
+
+		if (data.message_type === 0 || data.message_type === 1){
+			displaySystemMessage(data)
+			updateUserList(data.online_users, username)
+		}else if(data.message_type === 2){
+			displayChatMessage(data, username)
+		}
+	}
+
 	ws.onerror = (err) => {
 		console.error("❌ WebSocket ERROR:", err)
+		showStatus("Error", "red")
 	}
-	ws.onclose = ()=>{
+
+	ws.onclose = (event)=>{
 		console.log("🔌 WebSocket CLOSED")
 		console.log("Close code:", event.code)
-		console.log("Close reason:", event.reason)
-		console.log("Was clean:", event.wasClean)
-		console.log("disconnected!")
+		showStatus("Reconnecting...", "orange")
+
+		// Auto-reconnect after 2 seconds
+		clearTimeout(reconnectTimer)
+		reconnectTimer = setTimeout(connect, 2000)
+	}
+}
+
+function sendMessage(){
+	const input = document.querySelector(".message-input")
+	const content = input.value.trim()
+
+	if(!content){
+		return
+	}
+
+	if(ws && ws.readyState === WebSocket.OPEN){
+		ws.send(JSON.stringify({action: "chat", content: content}))
+		input.value = ""
+	} else {
+		console.log("WebSocket not ready")
+		showStatus("Connecting...", "orange")
+	}
+}
+
+function showStatus(text, color) {
+	const status = document.querySelector('.connection-status')
+	if (status) {
+		status.textContent = text
+		status.className = `connection-status text-xs px-2 py-1 rounded ${
+			color === 'green' ? 'bg-green-100 text-green-700' :
+				color === 'orange' ? 'bg-orange-100 text-orange-700' :
+					'bg-red-100 text-red-700'
+		}`
 	}
 }
 
@@ -179,7 +212,10 @@ export function renderChat(){
 
     <!-- Header -->
     <div class="bg-blue-600 text-white p-3 md:p-4 flex items-center justify-between shadow-md">
-      <h1 class="font-semibold text-base md:text-lg">Chat Room</h1>
+      <div class="flex items-center gap-2">
+        <h1 class="font-semibold text-base md:text-lg">Chat Room</h1>
+        <span class="connection-status text-xs px-2 py-1 rounded bg-green-100 text-green-700">Connecting...</span>
+      </div>
       <button class="toggle-users text-xs md:text-sm bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-md transition-colors">
         Users (<span class="user-count-mobile md:hidden">0</span><span class="hidden md:inline user-count">0</span>)
       </button>
@@ -206,8 +242,8 @@ export function renderChat(){
 
   </div>
 
-  <!-- ONLINE USERS SIDEBAR (overlay on mobile, fixed on desktop) -->
-  <div class="user-sidebar fixed md:relative inset-0 md:inset-auto z-50 md:z-auto hidden md:block w-full md:w-64 bg-gray-50 md:bg-gray-50">
+  <!-- ONLINE USERS SIDEBAR -->
+  <div class="user-sidebar fixed md:relative inset-0 md:inset-auto z-50 md:z-auto hidden md:block w-full md:w-64 bg-gray-50">
 
     <div class="h-full flex flex-col">
       <!-- Mobile close button -->
