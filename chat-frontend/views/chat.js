@@ -44,7 +44,7 @@ export function setupChat(){
 	}
 
 	function sendMessage(){
-		const input = document.querySelector("input")
+		const input = document.querySelector(".message-input")
 		const content = input.value.trim()
 		if(!content){
 			return
@@ -53,8 +53,8 @@ export function setupChat(){
 		input.value = ""
 	}
 
-	document.querySelector("button").addEventListener("click", sendMessage)
-	document.querySelector("input").addEventListener("keypress", (e)=>{
+	document.querySelector(".send-btn").addEventListener("click", sendMessage)
+	document.querySelector(".message-input").addEventListener("keypress", (e)=>{
 		if(e.key === "Enter"){
 			sendMessage()
 		}
@@ -187,10 +187,10 @@ export function renderChat(){
       <input
         type="text"
         placeholder="Type a message..."
-        class="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        class="message-input flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <button
-        class="rounded-full bg-blue-600 px-5 md:px-6 py-2 text-white text-sm md:text-base font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors whitespace-nowrap"
+        class="send-btn rounded-full bg-blue-600 px-5 md:px-6 py-2 text-white text-sm md:text-base font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors whitespace-nowrap"
       >
         Send
       </button>
