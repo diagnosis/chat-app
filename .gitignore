@@ -1,0 +1,21 @@
+# Binaries
+chat-app-v1
+*.exe
+
+# Go
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs (if any)
+*.log
+
