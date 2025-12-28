@@ -22,14 +22,14 @@ export function setupChat(){
 	}
 
 	// Toggle users sidebar on mobile
-	const toggleBtn = document.querySelector('.toggle-users')
+	const toggleBtns = document.querySelectorAll('.toggle-users')
 	const sidebar = document.querySelector('.user-sidebar')
 
-	if (toggleBtn) {
-		toggleBtn.addEventListener('click', () => {
+	toggleBtns.forEach(btn => {
+		btn.addEventListener('click', () => {
 			sidebar.classList.toggle('hidden')
 		})
-	}
+	})
 
 	ws.onmessage = (e)=>{
 		const data = JSON.parse(e.data)
@@ -39,21 +39,7 @@ export function setupChat(){
 			updateUserList(data.online_users, username)
 		}else if(data.message_type === 2){
 			console.log("new message:", data)
-			const isOwnMessage = data.sender === username
-			const msgDiv = document.createElement("div")
-			msgDiv.classList.add("max-w-[85%]", "md:max-w-[70%]", "rounded-lg", "px-3", "md:px-4", "py-2", "text-sm", "md:text-base")
-
-			if (isOwnMessage) {
-				msgDiv.classList.add("ml-auto", "bg-blue-500", "text-white")
-			} else {
-				msgDiv.classList.add("bg-gray-200", "text-gray-800")
-			}
-			msgDiv.innerText = data.content
-			document.querySelector(".message").append(msgDiv)
-
-			// Auto scroll to bottom
-			const messagesDiv = document.querySelector(".message")
-			messagesDiv.scrollTop = messagesDiv.scrollHeight
+			displayChatMessage(data, username)
 		}
 	}
 
@@ -80,27 +66,82 @@ export function setupChat(){
 }
 
 function updateUserList(onlineUsers, currentUsername){
-	const count = document.querySelector(".user-count")
-	const countMobile = document.querySelector(".user-count-mobile")
-
-	count.innerText = onlineUsers.length.toString()
-	if (countMobile) countMobile.innerText = onlineUsers.length.toString()
+	const counts = document.querySelectorAll(".user-count, .user-count-mobile")
+	counts.forEach(count => {
+		count.innerText = onlineUsers.length.toString()
+	})
 
 	const userList = document.querySelector(".user-list")
 	userList.innerHTML = ""
 
 	onlineUsers.forEach(user=>{
 		const li = document.createElement("li")
-		li.classList.add("rounded", "px-3", "py-2", "shadow-sm")
-		li.innerText = user
+		li.classList.add("rounded-lg", "px-3", "py-2.5", "shadow-sm", "text-sm", "md:text-base", "transition-colors")
 
 		if(user === currentUsername){
-			li.classList.add("bg-blue-600", "text-white")
+			li.classList.add("bg-blue-600", "text-white", "font-medium")
+			li.innerHTML = `${user} <span class="text-xs opacity-75">(you)</span>`
 		} else {
-			li.classList.add("bg-white")
+			li.classList.add("bg-white", "text-gray-700", "hover:bg-gray-100")
+			li.innerText = user
 		}
 		userList.append(li)
 	})
+}
+
+function displayChatMessage(data, currentUsername){
+	const isOwnMessage = data.sender === currentUsername
+	const timestamp = new Date().toLocaleTimeString('en-US', {
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: true
+	})
+
+	const msgContainer = document.createElement("div")
+	msgContainer.classList.add("flex", "mb-3")
+
+	if (isOwnMessage) {
+		msgContainer.classList.add("justify-end")
+	} else {
+		msgContainer.classList.add("justify-start")
+	}
+
+	const msgWrapper = document.createElement("div")
+	msgWrapper.classList.add("max-w-[85%]", "sm:max-w-[75%]", "md:max-w-[65%]", "lg:max-w-[55%]")
+
+	if (!isOwnMessage) {
+		const senderName = document.createElement("div")
+		senderName.classList.add("text-xs", "font-semibold", "text-gray-600", "mb-1", "px-1")
+		senderName.innerText = data.sender
+		msgWrapper.appendChild(senderName)
+	}
+
+	const msgBubble = document.createElement("div")
+	msgBubble.classList.add("rounded-2xl", "px-3", "py-2", "md:px-4", "md:py-2.5", "break-words")
+
+	if (isOwnMessage) {
+		msgBubble.classList.add("bg-blue-500", "text-white", "rounded-br-md")
+	} else {
+		msgBubble.classList.add("bg-gray-200", "text-gray-800", "rounded-bl-md")
+	}
+
+	const contentDiv = document.createElement("div")
+	contentDiv.classList.add("text-sm", "md:text-base", "whitespace-pre-wrap", "mb-1")
+	contentDiv.innerText = data.content
+
+	const timeDiv = document.createElement("div")
+	timeDiv.classList.add("text-xs", "opacity-70", "text-right")
+	timeDiv.innerText = timestamp
+
+	msgBubble.appendChild(contentDiv)
+	msgBubble.appendChild(timeDiv)
+	msgWrapper.appendChild(msgBubble)
+	msgContainer.appendChild(msgWrapper)
+
+	document.querySelector(".message").append(msgContainer)
+
+	const messagesDiv = document.querySelector(".message")
+	messagesDiv.scrollTop = messagesDiv.scrollHeight
 }
 
 function displaySystemMessage(data){
@@ -111,7 +152,7 @@ function displaySystemMessage(data){
 		msgTxt = `${data.sender} left the chat`
 	}
 	const msgContainer = document.createElement("div")
-	msgContainer.classList.add("flex", "justify-center")
+	msgContainer.classList.add("flex", "justify-center", "my-2")
 
 	const msg = document.createElement("div")
 	msg.classList.add("text-xs", "md:text-sm", "text-gray-500", "italic", "bg-gray-100", "px-3", "py-1", "rounded-full")
@@ -123,33 +164,33 @@ function displaySystemMessage(data){
 
 export function renderChat(){
 	return `
-    <div class="flex flex-col md:flex-row h-screen bg-gray-100">
+    <div class="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
 
   <!-- CHAT AREA -->
-  <div class="flex flex-col flex-1 bg-white">
+  <div class="flex flex-col flex-1 bg-white min-w-0">
 
-    <!-- Header (mobile only) -->
-    <div class="md:hidden bg-blue-600 text-white p-3 flex items-center justify-between">
-      <h1 class="font-semibold">Chat Room</h1>
-      <button class="toggle-users text-sm bg-blue-700 px-3 py-1 rounded">
-        Users (<span class="user-count-mobile">0</span>)
+    <!-- Header -->
+    <div class="bg-blue-600 text-white p-3 md:p-4 flex items-center justify-between shadow-md">
+      <h1 class="font-semibold text-base md:text-lg">Chat Room</h1>
+      <button class="toggle-users text-xs md:text-sm bg-blue-700 hover:bg-blue-800 px-3 py-1.5 rounded-md transition-colors">
+        Users (<span class="user-count-mobile md:hidden">0</span><span class="hidden md:inline user-count">0</span>)
       </button>
     </div>
 
     <!-- Messages -->
-    <div class="message flex-1 overflow-y-auto p-3 md:p-4 space-y-3">
+    <div class="message flex-1 overflow-y-auto p-3 md:p-4 bg-gray-50">
       <!-- Messages appear here -->
     </div>
 
     <!-- Input -->
-    <div class="flex items-center gap-2 border-t p-3 md:p-4 bg-white">
+    <div class="flex items-center gap-2 border-t p-3 md:p-4 bg-white shadow-lg">
       <input
         type="text"
         placeholder="Type a message..."
-        class="flex-1 rounded-md border px-3 md:px-4 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
+        class="flex-1 rounded-full border border-gray-300 px-4 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
       />
       <button
-        class="rounded-md bg-blue-600 px-4 md:px-5 py-2 text-white text-sm md:text-base hover:bg-blue-700 whitespace-nowrap"
+        class="rounded-full bg-blue-600 px-5 md:px-6 py-2 text-white text-sm md:text-base font-medium hover:bg-blue-700 active:bg-blue-800 transition-colors whitespace-nowrap"
       >
         Send
       </button>
@@ -157,16 +198,26 @@ export function renderChat(){
 
   </div>
 
-  <!-- ONLINE USERS SIDEBAR (hidden on mobile by default) -->
-  <div class="user-sidebar hidden md:block w-full md:w-64 bg-gray-50 p-4 border-t md:border-t-0 md:border-l">
+  <!-- ONLINE USERS SIDEBAR (overlay on mobile, fixed on desktop) -->
+  <div class="user-sidebar fixed md:relative inset-0 md:inset-auto z-50 md:z-auto hidden md:block w-full md:w-64 bg-gray-50 md:bg-gray-50">
 
-    <div class="mb-4 font-semibold">
-      Online: <span class="user-count text-green-600">0</span>
+    <div class="h-full flex flex-col">
+      <!-- Mobile close button -->
+      <div class="md:hidden bg-blue-600 text-white p-3 flex items-center justify-between">
+        <h2 class="font-semibold">Online Users</h2>
+        <button class="toggle-users text-xl">&times;</button>
+      </div>
+
+      <div class="p-4 flex-1 overflow-y-auto">
+        <div class="mb-4 font-semibold text-sm md:text-base">
+          Online: <span class="user-count text-green-600">0</span>
+        </div>
+
+        <ul class="user-list space-y-2">
+          <!-- Users appear here -->
+        </ul>
+      </div>
     </div>
-
-    <ul class="user-list space-y-2">
-      <!-- Users appear here -->
-    </ul>
 
   </div>
 
