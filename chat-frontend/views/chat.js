@@ -18,7 +18,8 @@ export function setupChat(){
 	const ws = new WebSocket(wsUrl)
 
 	ws.onopen = ()=>{
-		console.log("connected!")
+		console.log("✅ WebSocket CONNECTED")
+		console.log("WebSocket state:", ws.readyState)
 	}
 
 	// Toggle users sidebar on mobile
@@ -32,6 +33,7 @@ export function setupChat(){
 	})
 
 	ws.onmessage = (e)=>{
+		console.log("📨 Message received:", e.data)
 		const data = JSON.parse(e.data)
 		if (data.message_type === 0 || data.message_type === 1){
 			console.log(data)
@@ -59,8 +61,14 @@ export function setupChat(){
 			sendMessage()
 		}
 	})
-
+	ws.onerror = (err) => {
+		console.error("❌ WebSocket ERROR:", err)
+	}
 	ws.onclose = ()=>{
+		console.log("🔌 WebSocket CLOSED")
+		console.log("Close code:", event.code)
+		console.log("Close reason:", event.reason)
+		console.log("Was clean:", event.wasClean)
 		console.log("disconnected!")
 	}
 }
