@@ -34,8 +34,15 @@ export function setupChat(){
 		}
 	})
 }
+let reconnectAttempts = 0
+const MAX_RECONNECTS = 5  // Stop after 5 tries
 
 function connect() {
+	if (reconnectAttempts >= MAX_RECONNECTS) {
+		console.log("Max reconnection attempts reached. Please refresh.")
+		showStatus("Connection failed. Refresh page.", "red")
+		return
+	}
 	const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
 	const host = window.location.host
 	const wsUrl = `${protocol}//${host}/ws?username=${username}`
@@ -45,6 +52,7 @@ function connect() {
 	ws = new WebSocket(wsUrl)
 
 	ws.onopen = ()=>{
+		reconnectAttempts = 0
 		console.log("✅ WebSocket CONNECTED")
 		showStatus("Connected", "green")
 	}
@@ -67,6 +75,8 @@ function connect() {
 	}
 
 	ws.onclose = (event)=>{
+		reconnectAttempts++
+		console.log(`Reconnect attempt ${reconnectAttempts}/${MAX_RECONNECTS}`)
 		console.log("🔌 WebSocket CLOSED")
 		console.log("Close code:", event.code)
 		showStatus("Reconnecting...", "orange")
